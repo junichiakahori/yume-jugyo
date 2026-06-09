@@ -291,7 +291,7 @@ body {
   justify-content: center;
   position: relative;
   background-color: var(--bg-primary);
-  padding: 40px;
+  padding: 20px;
   transition: padding 0.3s ease;
 }
 
@@ -308,7 +308,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 50px 60px;
+  padding: 40px 48px;
   z-index: 1;
   transition: var(--transition-smooth);
 }
@@ -322,7 +322,7 @@ body {
 }
 @media (min-aspect-ratio: 16/9) {
   .slide-container {
-    height: 90%;
+    height: 95%;
     width: auto;
   }
 }
@@ -707,8 +707,8 @@ body {
 
 .kamishibai-layout-container {
   display: grid;
-  grid-template-columns: 1.1fr 1fr;
-  gap: 32px;
+  grid-template-columns: 1fr 1.25fr;
+  gap: 28px;
   align-items: center;
   flex: 1;
   height: 100%;
@@ -783,10 +783,13 @@ body {
 }
 
 .kamishibai-text-container h2 {
-  font-size: 2.25rem;
+  font-size: clamp(1.8rem, 3vw, 2.3rem);
   font-weight: 800;
   margin-bottom: 0;
   line-height: 1.25;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
 }
 
 .kamishibai-description {
