@@ -27,6 +27,7 @@
   let isSpeaking = false;
   const synth = window.speechSynthesis;
   let utterance = null;
+  let audioPlayer = null; // VOICEVOX再生用
 
   // レーザーポインター状態
   let isLaserMode = false;
@@ -460,6 +461,11 @@
     // ページ遷移時に読み上げをストップ
     if (synth && synth.speaking) {
       synth.cancel();
+      setSpeakState(false);
+    }
+    if (audioPlayer) {
+      audioPlayer.pause();
+      audioPlayer.src = "";
       setSpeakState(false);
     }
 
@@ -1031,12 +1037,21 @@
     }
   }
 
-  // --- 音声読み上げ機能 (SpeechSynthesis) ---
+  // --- 音声読み上げ機能 (SpeechSynthesis & VOICEVOX) ---
   function toggleSpeak() {
-    if (!currentDeck) return;
+    if (!currentDeck) {
+      console.warn("デッキがロードされていません。");
+      return;
+    }
     
-    if (synth.speaking) {
+    // 再生中ならキャンセルして停止
+    if (synth.speaking || (audioPlayer && !audioPlayer.paused)) {
+      console.log("音声再生を停止します。");
       synth.cancel();
+      if (audioPlayer) {
+        audioPlayer.pause();
+        audioPlayer.src = "";
+      }
       setSpeakState(false);
       return;
     }
@@ -1070,22 +1085,119 @@
       .replace(/IT/g, "アイティー")
       .replace(/PC/g, "ピーシー");
 
-    if (!textToSpeak.trim()) return;
-
-    utterance = new SpeechSynthesisUtterance(textToSpeak);
-    utterance.lang = "ja-JP";
-    
-    const voices = synth.getVoices();
-    const jaVoice = voices.find(v => v.lang.includes("ja"));
-    if (jaVoice) {
-      utterance.voice = jaVoice;
+    if (!textToSpeak.trim()) {
+      console.warn("読み上げるテキストがありません。");
+      return;
     }
 
-    utterance.onstart = () => setSpeakState(true);
-    utterance.onend = () => setSpeakState(false);
-    utterance.onerror = () => setSpeakState(false);
+    console.log("読み上げテキスト:", textToSpeak);
 
-    synth.speak(utterance);
+    // HTTPS環境（GitHub Pagesなど）の場合は、ローカルのVOICEVOX（HTTP）へのリクエストが
+    // Mixed Contentポリシーでブロックされるため、最初から標準音声（Web Speech API）を使用する。
+    if (window.location.protocol === "https:") {
+      console.log("HTTPS環境のため、Mixed Contentエラーを回避するために標準音声合成（Web Speech API）を使用します。");
+      playWithWebSpeech(textToSpeak);
+      return;
+    }
+
+    // VOICEVOXのローカルAPIにリクエストを投げる
+    // デフォルト: ずんだもん（スピーカーID 3）
+    const voicevoxUrl = "http://127.0.0.1:50021";
+    console.log("VOICEVOXでの再生を試みます...", voicevoxUrl);
+    playWithVoicevox(textToSpeak);
+
+    async function playWithVoicevox(text) {
+      try {
+        // 1. audio_queryの取得（1.5秒でタイムアウト）
+        const queryController = new AbortController();
+        const queryTimeout = setTimeout(() => queryController.abort(), 1500);
+
+        const queryRes = await fetch(`${voicevoxUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=3`, {
+          method: "POST",
+          signal: queryController.signal
+        });
+        clearTimeout(queryTimeout);
+
+        if (!queryRes.ok) throw new Error(`VOICEVOX audio_query failed with status ${queryRes.status}`);
+        const queryJson = await queryRes.json();
+
+        // イントネーションのスピードを少し調整可能 (例: 話速 1.15)
+        queryJson.speedScale = 1.15; 
+
+        // 2. 音声合成の取得（3秒でタイムアウト）
+        const synthController = new AbortController();
+        const synthTimeout = setTimeout(() => synthController.abort(), 3000);
+
+        console.log("VOICEVOXでの音声合成を実行中...");
+        const synthRes = await fetch(`${voicevoxUrl}/synthesis?speaker=3`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(queryJson),
+          signal: synthController.signal
+        });
+        clearTimeout(synthTimeout);
+
+        if (!synthRes.ok) throw new Error(`VOICEVOX synthesis failed with status ${synthRes.status}`);
+        const audioBlob = await synthRes.blob();
+        console.log("VOICEVOXでの音声合成に成功しました。再生を開始します。");
+
+        const audioUrl = URL.createObjectURL(audioBlob);
+        if (!audioPlayer) {
+          audioPlayer = new Audio();
+        }
+        audioPlayer.src = audioUrl;
+        audioPlayer.onplay = () => setSpeakState(true);
+        audioPlayer.onended = () => {
+          setSpeakState(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        audioPlayer.onerror = (err) => {
+          console.error("AudioPlayerでエラーが発生したため、標準音声合成へフォールバックします。", err);
+          playWithWebSpeech(text);
+        };
+        
+        audioPlayer.play().catch(err => {
+          console.error("AudioPlayerの再生に失敗したため、標準音声合成へフォールバックします。", err);
+          playWithWebSpeech(text);
+        });
+      } catch (e) {
+        console.log("VOICEVOX接続エラー、タイムアウト、またはCORS制限のため標準音声合成（Web Speech API）で読み上げます。", e.message);
+        playWithWebSpeech(text);
+      }
+    }
+
+    function playWithWebSpeech(text) {
+      console.log("標準音声合成（Web Speech API）で読み上げを開始します。");
+      // 既存の読み上げを確実にキャンセル
+      synth.cancel();
+
+      utterance = new SpeechSynthesisUtterance(text);
+      utterance.lang = "ja-JP";
+      
+      const voices = synth.getVoices();
+      const jaVoice = voices.find(v => v.lang.includes("ja"));
+      if (jaVoice) {
+        utterance.voice = jaVoice;
+        console.log("日本語音声を適用しました:", jaVoice.name);
+      } else {
+        console.log("日本語音声が見つからないため、ブラウザデフォルトで再生します。");
+      }
+
+      utterance.onstart = () => {
+        console.log("標準音声合成の再生が開始されました。");
+        setSpeakState(true);
+      };
+      utterance.onend = () => {
+        console.log("標準音声合成の再生が完了しました。");
+        setSpeakState(false);
+      };
+      utterance.onerror = (event) => {
+        console.error("標準音声合成の再生エラーが発生しました:", event.error, event);
+        setSpeakState(false);
+      };
+
+      synth.speak(utterance);
+    }
   }
 
   function setSpeakState(state) {
