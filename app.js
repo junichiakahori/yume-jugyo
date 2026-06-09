@@ -1049,6 +1049,10 @@
       console.log("音声再生を停止します。");
       synth.cancel();
       if (audioPlayer) {
+        // 停止処理によってonerrorやonendedが誤作動してフォールバックが発火するのを防ぐため、ハンドラを解除する
+        audioPlayer.onerror = null;
+        audioPlayer.onended = null;
+        audioPlayer.onplay = null;
         audioPlayer.pause();
         audioPlayer.src = "";
       }
