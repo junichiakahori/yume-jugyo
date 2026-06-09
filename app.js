@@ -1060,8 +1060,15 @@
       textToSpeak = `${slide.title}。メッセージ：${slide.content.quote}。著者：${slide.content.author}`;
     }
 
-    // 絵文字や記号などを除正
-    textToSpeak = textToSpeak.replace(/💬/g, "").replace(/💡/g, "");
+    // 絵文字や記号などを除正、英語アルファベットの読み間違い（AI -> エーアイなど）をカナに置換
+    textToSpeak = textToSpeak
+      .replace(/💬/g, "")
+      .replace(/💡/g, "")
+      .replace(/AI/g, "エーアイ")
+      .replace(/Scratch/g, "スクラッチ")
+      .replace(/LT/g, "エルティー")
+      .replace(/IT/g, "アイティー")
+      .replace(/PC/g, "ピーシー");
 
     if (!textToSpeak.trim()) return;
 
