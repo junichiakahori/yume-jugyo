@@ -151,7 +151,8 @@
         const hasScratch = saved.includes("car-scratch");
         const hasOrientation = decks.some(d => d.id === "orientation");
         const hasNewCopy = saved.includes("ひみつ道具");
-        if (!hasCareer || !hasAISlide || hasOldName || hasOldTerm || !hasScratch || hasOrientation || !hasNewCopy) {
+        const hasThankYou = saved.includes("ありがとうございました");
+        if (!hasCareer || !hasAISlide || hasOldName || hasOldTerm || !hasScratch || hasOrientation || !hasNewCopy || !hasThankYou) {
           usePreset = true;
         }
       } catch (e) {
