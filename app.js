@@ -28,6 +28,7 @@
   const synth = window.speechSynthesis;
   let utterance = null;
   let audioPlayer = null; // VOICEVOX再生用
+  let isAutoSpeakEnabled = false; // 自動読み上げ有効フラグ
 
   // レーザーポインター状態
   let isLaserMode = false;
@@ -43,6 +44,9 @@
     setupDrawingCanvas();
     renderDeckSelector();
     loadDeck(decks[0].id);
+
+    // 自動再生設定の復元
+    loadAutoSpeakConfig();
   });
 
   // DOM要素の取得
@@ -103,6 +107,7 @@
       penColorSelector: document.getElementById("pen-color-selector"),
       btnToolClear: document.getElementById("btn-tool-clear"),
       btnToolSpeak: document.getElementById("btn-tool-speak"),
+      btnToolAutoSpeak: document.getElementById("btn-tool-autospeak"),
       
       // コントロールバー - アピアランス
       themeSelector: document.getElementById("theme-selector"),
@@ -482,6 +487,18 @@
       updateActiveThumbnail();
       populateEditorFields();
     }
+
+    // 自動読み上げが有効なら、一瞬待って再生を開始
+    if (isAutoSpeakEnabled) {
+      setTimeout(() => {
+        // 遷移途中で別のスライドに移った場合に多重起動するのを防ぐため、状態を確認
+        if (currentSlideIndex === index && !synth.speaking && (!audioPlayer || audioPlayer.paused)) {
+          if (!isSpeaking) {
+            toggleSpeak();
+          }
+        }
+      }, 350); // スライド遷移アニメーションが終わるのを少し待つ
+    }
   }
 
   function nextSlide() {
@@ -567,6 +584,18 @@
           // タイマーの一時停止・再生
           toggleTimer();
           break;
+        case "v":
+        case "V":
+          // 音声再生・停止
+          toggleSpeak();
+          e.preventDefault();
+          break;
+        case "a":
+        case "A":
+          // 自動読み上げモードのトグル
+          toggleAutoSpeak();
+          e.preventDefault();
+          break;
       }
     });
 
@@ -630,6 +659,7 @@
     elements.btnToolLaser.addEventListener("click", () => toggleLaserMode(!isLaserMode));
     elements.btnToolClear.addEventListener("click", clearCanvas);
     elements.btnToolSpeak.addEventListener("click", toggleSpeak);
+    elements.btnToolAutoSpeak.addEventListener("click", toggleAutoSpeak);
 
     // ペンカラー選択
     elements.penColorSelector.querySelectorAll(".color-dot").forEach(dot => {
@@ -1217,11 +1247,45 @@
     if (state) {
       btn.classList.add("active");
       btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16,16H14V8H16V16M10,16H8V8H10V16Z"/></svg>`;
-      btn.title = "読み上げを停止";
+      btn.title = "読み上げを停止 (ショートカット: V)";
     } else {
       btn.classList.remove("active");
       btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.77 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>`;
-      btn.title = "音声で読み上げる";
+      btn.title = "音声で読み上げる (ショートカット: V)";
+    }
+  }
+
+  function toggleAutoSpeak() {
+    isAutoSpeakEnabled = !isAutoSpeakEnabled;
+    updateAutoSpeakButtonState();
+    try {
+      localStorage.setItem("yume_slides_autospeak", isAutoSpeakEnabled);
+    } catch (e) {
+      console.warn("自動再生設定の保存に失敗しました", e);
+    }
+  }
+
+  function loadAutoSpeakConfig() {
+    try {
+      const saved = localStorage.getItem("yume_slides_autospeak");
+      if (saved !== null) {
+        isAutoSpeakEnabled = saved === "true";
+        updateAutoSpeakButtonState();
+      }
+    } catch (e) {
+      console.warn("自動再生設定のロードに失敗しました", e);
+    }
+  }
+
+  function updateAutoSpeakButtonState() {
+    const btn = elements.btnToolAutoSpeak;
+    if (!btn) return;
+    if (isAutoSpeakEnabled) {
+      btn.classList.add("active");
+      btn.title = "自動読み上げをOFFにする (ショートカット: A | 現在: ON)";
+    } else {
+      btn.classList.remove("active");
+      btn.title = "自動読み上げをONにする (ショートカット: A | 現在: OFF)";
     }
   }
 
