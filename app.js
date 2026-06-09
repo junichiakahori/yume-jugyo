@@ -23,6 +23,11 @@
   let lastX = 0;
   let lastY = 0;
 
+  // 音声読み上げ状態
+  let isSpeaking = false;
+  const synth = window.speechSynthesis;
+  let utterance = null;
+
   // レーザーポインター状態
   let isLaserMode = false;
 
@@ -96,6 +101,7 @@
       btnToolPen: document.getElementById("btn-tool-pen"),
       penColorSelector: document.getElementById("pen-color-selector"),
       btnToolClear: document.getElementById("btn-tool-clear"),
+      btnToolSpeak: document.getElementById("btn-tool-speak"),
       
       // コントロールバー - アピアランス
       themeSelector: document.getElementById("theme-selector"),
@@ -451,6 +457,12 @@
     if (!currentDeck) return;
     if (index < 0 || index >= currentDeck.slides.length) return;
 
+    // ページ遷移時に読み上げをストップ
+    if (synth && synth.speaking) {
+      synth.cancel();
+      setSpeakState(false);
+    }
+
     currentSlideIndex = index;
     renderSlide();
     updateSlideCounter();
@@ -607,6 +619,7 @@
     elements.btnToolPen.addEventListener("click", () => togglePenMode(!isPenMode));
     elements.btnToolLaser.addEventListener("click", () => toggleLaserMode(!isLaserMode));
     elements.btnToolClear.addEventListener("click", clearCanvas);
+    elements.btnToolSpeak.addEventListener("click", toggleSpeak);
 
     // ペンカラー選択
     elements.penColorSelector.querySelectorAll(".color-dot").forEach(dot => {
@@ -1015,6 +1028,71 @@
       elements.slidePlayer.classList.remove("laser-mode");
       elements.btnToolLaser.classList.remove("active");
       elements.laserPointer.style.display = "none";
+    }
+  }
+
+  // --- 音声読み上げ機能 (SpeechSynthesis) ---
+  function toggleSpeak() {
+    if (!currentDeck) return;
+    
+    if (synth.speaking) {
+      synth.cancel();
+      setSpeakState(false);
+      return;
+    }
+
+    const slide = currentDeck.slides[currentSlideIndex];
+    let textToSpeak = "";
+
+    // スライドのレイアウトに合わせて読み上げる文面を構成
+    if (slide.layout === "kamishibai") {
+      textToSpeak = `${slide.title}。${slide.subtitle || ""}。${slide.content.description || ""}`;
+    } else if (slide.layout === "title") {
+      textToSpeak = `${slide.title}。${slide.subtitle || ""}。`;
+    } else if (slide.layout === "list") {
+      textToSpeak = `${slide.title}。${(slide.content.bullets || []).join("。")}`;
+    } else if (slide.layout === "split") {
+      textToSpeak = `${slide.title}。左の項目：${slide.content.leftTitle}。${(slide.content.leftBullets || []).join("。")}。右の項目：${slide.content.rightTitle}。${(slide.content.rightBullets || []).join("。")}`;
+    } else if (slide.layout === "timeline") {
+      const stepTexts = (slide.content.steps || []).map(s => `${s.label}、${s.desc}`).join("。");
+      textToSpeak = `${slide.title}。${stepTexts}`;
+    } else if (slide.layout === "quote") {
+      textToSpeak = `${slide.title}。メッセージ：${slide.content.quote}。著者：${slide.content.author}`;
+    }
+
+    // 絵文字や記号などを除正
+    textToSpeak = textToSpeak.replace(/💬/g, "").replace(/💡/g, "");
+
+    if (!textToSpeak.trim()) return;
+
+    utterance = new SpeechSynthesisUtterance(textToSpeak);
+    utterance.lang = "ja-JP";
+    
+    const voices = synth.getVoices();
+    const jaVoice = voices.find(v => v.lang.includes("ja"));
+    if (jaVoice) {
+      utterance.voice = jaVoice;
+    }
+
+    utterance.onstart = () => setSpeakState(true);
+    utterance.onend = () => setSpeakState(false);
+    utterance.onerror = () => setSpeakState(false);
+
+    synth.speak(utterance);
+  }
+
+  function setSpeakState(state) {
+    isSpeaking = state;
+    const btn = elements.btnToolSpeak;
+    if (!btn) return;
+    if (state) {
+      btn.classList.add("active");
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12,2A10,10 0 0,0 2,12A10,10 0 0,0 12,22A10,10 0 0,0 22,12A10,10 0 0,0 12,2M16,16H14V8H16V16M10,16H8V8H10V16Z"/></svg>`;
+      btn.title = "読み上げを停止";
+    } else {
+      btn.classList.remove("active");
+      btn.innerHTML = `<svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.77 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg>`;
+      btn.title = "音声で読み上げる";
     }
   }
 
@@ -1674,6 +1752,7 @@
           <button class="color-dot color-yellow" data-color="#ffcc00"></button>
         </div>
         <button id="btn-tool-clear" class="btn-control hidden"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M19.36,2.72L20.78,4.14L15.06,9.85C16.13,11.39 16.28,13.24 15.38,14.44L9.06,8.12C10.26,7.22 12.11,7.37 13.65,8.44L19.36,2.72M5.93,17.57C3.97,15.62 3.97,12.45 5.93,10.5L9.06,13.62L5.93,17.57M18.5,18.5C18.5,19.88 15.37,21 11.5,21C7.63,21 4.5,19.88 4.5,18.5V17.5H18.5V18.5Z"/></svg></button>
+        <button id="btn-tool-speak" class="btn-control"><svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M14,3.23V5.29C16.89,6.15 19,8.83 19,12C19,15.17 16.89,17.85 14,18.71V20.77C18,19.86 21,16.28 21,12C21,7.72 18,4.14 14,3.23M16.5,12C16.5,10.23 15.5,8.71 14,7.97V16C15.5,15.29 16.5,13.77 16.5,12M3,9V15H7L12,20V4L7,9H3Z"/></svg></button>
       </div>
       <div class="divider"></div>
       <div class="control-group appearance-controls">
