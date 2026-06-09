@@ -707,8 +707,8 @@ body {
 
 .kamishibai-layout-container {
   display: grid;
-  grid-template-columns: 1fr 1.25fr;
-  gap: 28px;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 24px;
   align-items: center;
   flex: 1;
   height: 100%;
@@ -783,7 +783,7 @@ body {
 }
 
 .kamishibai-text-container h2 {
-  font-size: clamp(1.6rem, 2.8vw, 2.25rem);
+  font-size: clamp(1.5rem, 2.5vw, 2.1rem);
   font-weight: 800;
   margin-bottom: 0;
   line-height: 1.35;
