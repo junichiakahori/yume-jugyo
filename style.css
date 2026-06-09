@@ -783,13 +783,10 @@ body {
 }
 
 .kamishibai-text-container h2 {
-  font-size: clamp(1.8rem, 3vw, 2.3rem);
+  font-size: clamp(1.6rem, 2.8vw, 2.25rem);
   font-weight: 800;
   margin-bottom: 0;
-  line-height: 1.25;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-  overflow: hidden;
+  line-height: 1.35;
 }
 
 .kamishibai-description {
