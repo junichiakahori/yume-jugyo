@@ -97,7 +97,7 @@ window.YUME_DECKS = [
         subtitle: "皆さんの未来を応援しています",
         content: {
           bgText: "THANK YOU",
-          caption: "AIエンジニア：赤堀 淳一"
+          caption: "AIエンジニア：赤堀 純一"
         },
         notes: "ご清聴ありがとうございました。皆さんの未来の挑戦を、心から楽しみにしています！"
       }
