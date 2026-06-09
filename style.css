@@ -298,7 +298,7 @@ body {
 /* スライドコンテナ (16:9アスペクト比でレスポンシブスケール) */
 .slide-container {
   width: 100%;
-  max-width: 1280px;
+  max-width: 1440px;
   aspect-ratio: 16 / 9;
   background: var(--bg-slide-gradient);
   border: 1px solid var(--glass-border);
@@ -308,7 +308,7 @@ body {
   overflow: hidden;
   display: flex;
   flex-direction: column;
-  padding: 60px 80px;
+  padding: 50px 60px;
   z-index: 1;
   transition: var(--transition-smooth);
 }
@@ -707,8 +707,8 @@ body {
 
 .kamishibai-layout-container {
   display: grid;
-  grid-template-columns: 1.2fr 1fr;
-  gap: 40px;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 32px;
   align-items: center;
   flex: 1;
   height: 100%;
@@ -783,9 +783,10 @@ body {
 }
 
 .kamishibai-text-container h2 {
-  font-size: 2.4rem;
+  font-size: 2.25rem;
   font-weight: 800;
   margin-bottom: 0;
+  line-height: 1.25;
 }
 
 .kamishibai-description {
