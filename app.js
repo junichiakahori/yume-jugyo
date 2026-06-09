@@ -464,6 +464,10 @@
       setSpeakState(false);
     }
     if (audioPlayer) {
+      // 停止処理によるエラー発火（フォールバック起動）を防ぐためにイベントを解除する
+      audioPlayer.onerror = null;
+      audioPlayer.onended = null;
+      audioPlayer.onplay = null;
       audioPlayer.pause();
       audioPlayer.src = "";
       setSpeakState(false);
