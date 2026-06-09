@@ -29,6 +29,8 @@
   let utterance = null;
   let audioPlayer = null; // VOICEVOX再生用
   let isAutoSpeakEnabled = false; // 自動読み上げ有効フラグ
+  let voicevoxAbortController = null; // VOICEVOX通信キャンセル用
+  let autoSpeakTimeoutId = null; // 自動読み上げ遅延タイマーID
 
   // レーザーポインター状態
   let isLaserMode = false;
@@ -479,6 +481,19 @@
       setSpeakState(false);
     }
 
+    // 進行中のVOICEVOX通信があれば即座にキャンセル（中断）
+    if (voicevoxAbortController) {
+      voicevoxAbortController.abort();
+      voicevoxAbortController = null;
+      console.log("進行中のVOICEVOX通信をキャンセルしました。");
+    }
+
+    // 保留中の自動読み上げ予約をクリア
+    if (autoSpeakTimeoutId) {
+      clearTimeout(autoSpeakTimeoutId);
+      autoSpeakTimeoutId = null;
+    }
+
     currentSlideIndex = index;
     renderSlide();
     updateSlideCounter();
@@ -491,7 +506,7 @@
 
     // 自動読み上げが有効なら、一瞬待って再生を開始
     if (isAutoSpeakEnabled) {
-      setTimeout(() => {
+      autoSpeakTimeoutId = setTimeout(() => {
         // 遷移途中で別のスライドに移った場合に多重起動するのを防ぐため、状態を確認
         if (currentSlideIndex === index && !synth.speaking && (!audioPlayer || audioPlayer.paused)) {
           if (!isSpeaking) {
@@ -1079,8 +1094,8 @@
       return;
     }
     
-    // 再生中ならキャンセルして停止
-    if (synth.speaking || (audioPlayer && !audioPlayer.paused)) {
+    // 再生中ならキャンセルして停止（通信中の場合も含む）
+    if (synth.speaking || (audioPlayer && !audioPlayer.paused) || voicevoxAbortController) {
       console.log("音声再生を停止します。");
       synth.cancel();
       if (audioPlayer) {
@@ -1090,6 +1105,10 @@
         audioPlayer.onplay = null;
         audioPlayer.pause();
         audioPlayer.src = "";
+      }
+      if (voicevoxAbortController) {
+        voicevoxAbortController.abort();
+        voicevoxAbortController = null;
       }
       setSpeakState(false);
       return;
@@ -1148,14 +1167,29 @@
     playWithVoicevox(textToSpeak);
 
     async function playWithVoicevox(text) {
+      // 既存の通信があれば中断
+      if (voicevoxAbortController) {
+        voicevoxAbortController.abort();
+      }
+      voicevoxAbortController = new AbortController();
+      const signal = voicevoxAbortController.signal;
+
+      // タイムアウト設定用の関数
+      const setupTimeout = (ms) => {
+        return setTimeout(() => {
+          if (voicevoxAbortController && !signal.aborted) {
+            console.log("VOICEVOX通信タイムアウトによる中断");
+            voicevoxAbortController.abort();
+          }
+        }, ms);
+      };
+
       try {
         // 1. audio_queryの取得（長文対応のため5秒でタイムアウト）
-        const queryController = new AbortController();
-        const queryTimeout = setTimeout(() => queryController.abort(), 5000);
-
+        const queryTimeout = setupTimeout(5000);
         const queryRes = await fetch(`${voicevoxUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=3`, {
           method: "POST",
-          signal: queryController.signal
+          signal: signal
         });
         clearTimeout(queryTimeout);
 
@@ -1166,21 +1200,22 @@
         queryJson.speedScale = 1.15; 
 
         // 2. 音声合成の取得（長文かつCPU合成対応のため15秒でタイムアウト）
-        const synthController = new AbortController();
-        const synthTimeout = setTimeout(() => synthController.abort(), 15000);
-
+        const synthTimeout = setupTimeout(15000);
         console.log("VOICEVOXでの音声合成を実行中...");
         const synthRes = await fetch(`${voicevoxUrl}/synthesis?speaker=3`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(queryJson),
-          signal: synthController.signal
+          signal: signal
         });
         clearTimeout(synthTimeout);
 
         if (!synthRes.ok) throw new Error(`VOICEVOX synthesis failed with status ${synthRes.status}`);
         const audioBlob = await synthRes.blob();
         console.log("VOICEVOXでの音声合成に成功しました。再生を開始します。");
+
+        // 正常終了したのでコントローラーをクリア
+        voicevoxAbortController = null;
 
         const audioUrl = URL.createObjectURL(audioBlob);
         if (!audioPlayer) {
@@ -1202,6 +1237,11 @@
           playWithWebSpeech(text);
         });
       } catch (e) {
+        // 意図的なキャンセルの場合は何もしない
+        if (signal.aborted) {
+          console.log("VOICEVOX再生はユーザーの操作またはスライド遷移によりキャンセルされました。");
+          return;
+        }
         console.log("VOICEVOX接続エラー、タイムアウト、またはCORS制限のため標準音声合成（Web Speech API）で読み上げます。", e.message);
         playWithWebSpeech(text);
       }
