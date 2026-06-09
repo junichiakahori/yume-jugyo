@@ -1091,7 +1091,9 @@
       .replace(/Scratch/g, "スクラッチ")
       .replace(/LT/g, "エルティー")
       .replace(/IT/g, "アイティー")
-      .replace(/PC/g, "ピーシー");
+      .replace(/PC/g, "ピーシー")
+      .replace(/\r?\n/g, " ") // 改行をスペースに置換してAPIの挙動を安定させる
+      .replace(/\s+/g, " ");   // 連続する空白を1つにまとめる
 
     if (!textToSpeak.trim()) {
       console.warn("読み上げるテキストがありません。");
@@ -1116,9 +1118,9 @@
 
     async function playWithVoicevox(text) {
       try {
-        // 1. audio_queryの取得（1.5秒でタイムアウト）
+        // 1. audio_queryの取得（長文対応のため5秒でタイムアウト）
         const queryController = new AbortController();
-        const queryTimeout = setTimeout(() => queryController.abort(), 1500);
+        const queryTimeout = setTimeout(() => queryController.abort(), 5000);
 
         const queryRes = await fetch(`${voicevoxUrl}/audio_query?text=${encodeURIComponent(text)}&speaker=3`, {
           method: "POST",
@@ -1132,9 +1134,9 @@
         // イントネーションのスピードを少し調整可能 (例: 話速 1.15)
         queryJson.speedScale = 1.15; 
 
-        // 2. 音声合成の取得（3秒でタイムアウト）
+        // 2. 音声合成の取得（長文かつCPU合成対応のため15秒でタイムアウト）
         const synthController = new AbortController();
-        const synthTimeout = setTimeout(() => synthController.abort(), 3000);
+        const synthTimeout = setTimeout(() => synthController.abort(), 15000);
 
         console.log("VOICEVOXでの音声合成を実行中...");
         const synthRes = await fetch(`${voicevoxUrl}/synthesis?speaker=3`, {
