@@ -154,7 +154,8 @@
         const hasOrientation = decks.some(d => d.id === "orientation");
         const hasNewCopy = saved.includes("ひみつ道具");
         const hasThankYou = saved.includes("ありがとうございました");
-        if (!hasCareer || !hasAISlide || hasOldName || hasOldTerm || !hasScratch || hasOrientation || !hasNewCopy || !hasThankYou) {
+        const hasScratchUrl = saved.includes("scratch.mit.edu");
+        if (!hasCareer || !hasAISlide || hasOldName || hasOldTerm || !hasScratch || hasOrientation || !hasNewCopy || !hasThankYou || !hasScratchUrl) {
           usePreset = true;
         }
       } catch (e) {
@@ -285,7 +286,7 @@
         <span class="bullet-icon">
           <svg viewBox="0 0 24 24" width="24" height="24"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"/></svg>
         </span>
-        <div class="bullet-text">${escapeHtml(b)}</div>
+        <div class="bullet-text">${linkify(escapeHtml(b))}</div>
       </div>
     `).join("");
 
@@ -311,7 +312,7 @@
         <span class="bullet-icon">
           <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"/></svg>
         </span>
-        <div class="bullet-text">${escapeHtml(b)}</div>
+        <div class="bullet-text">${linkify(escapeHtml(b))}</div>
       </div>
     `).join("");
 
@@ -320,7 +321,7 @@
         <span class="bullet-icon">
           <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2C6.48 2 2 6.48 2 12S6.48 22 12 22 22 17.52 22 12 17.52 2 12 2M10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z"/></svg>
         </span>
-        <div class="bullet-text">${escapeHtml(b)}</div>
+        <div class="bullet-text">${linkify(escapeHtml(b))}</div>
       </div>
     `).join("");
 
@@ -444,7 +445,7 @@
         <div class="kamishibai-text-container">
           <h2>${escapeHtml(slide.title)}</h2>
           ${subtitle ? `<p class="slide-sub">${escapeHtml(subtitle)}</p>` : ''}
-          <div class="kamishibai-description">${escapeHtml(description).replace(/\n/g, '<br>')}</div>
+          <div class="kamishibai-description">${linkify(escapeHtml(description)).replace(/\n/g, '<br>')}</div>
         </div>
       </div>
     `;
@@ -459,6 +460,15 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  // URL自動リンク化ユーティリティ
+  function linkify(str) {
+    if (typeof str !== "string") return "";
+    const urlRegex = /(https?:\/\/[^\s<]+)/g;
+    return str.replace(urlRegex, function(url) {
+      return `<a href="${url}" target="_blank" rel="noopener noreferrer" class="slide-link">${url}</a>`;
+    });
   }
 
   // --- スライド移動処理 ---
@@ -1133,10 +1143,12 @@
       textToSpeak = `${slide.title}。メッセージ：${slide.content.quote}。著者：${slide.content.author}`;
     }
 
-    // 絵文字や記号などを除正、英語アルファベットの読み間違い（AI -> エーアイなど）をカナに置換
+    // 絵文字や記号などを除正、英語アルファベットの読み間違い（AI -> エーアイなど）をカナに置換、URLの除去
     textToSpeak = textToSpeak
       .replace(/💬/g, "")
       .replace(/💡/g, "")
+      .replace(/🔗/g, "")
+      .replace(/https?:\/\/[^\s]+/g, "") // URL文字列を除去してナレーションを聞き取りやすくする
       .replace(/AI/g, "エーアイ")
       .replace(/Scratch/g, "スクラッチ")
       .replace(/LT/g, "エルティー")

@@ -1403,3 +1403,16 @@ body.fullscreen-mode .presenter-control-bar:hover {
   opacity: 1;
   transform: translateX(-50%) translateY(0);
 }
+
+/* スライド内の自動リンク装飾 */
+.slide-link {
+  color: var(--accent);
+  text-decoration: underline;
+  font-weight: 600;
+  transition: var(--transition-fast);
+}
+
+.slide-link:hover {
+  color: var(--accent-hover);
+  text-shadow: 0 0 8px rgba(var(--accent-rgb), 0.5);
+}
