@@ -1039,6 +1039,11 @@
     canvas.style.width = `${rect.width}px`;
     canvas.style.height = `${rect.height}px`;
 
+    // 内部解像度サイズが既に同じなら、描画クリアを避けるために再設定をスキップする
+    if (canvas && Math.abs(canvas.width - rect.width) < 1 && Math.abs(canvas.height - rect.height) < 1) {
+      return;
+    }
+
     // 内部解像度を実際の描画ピクセルサイズに同期
     canvas.width = rect.width;
     canvas.height = rect.height;
