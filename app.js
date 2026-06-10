@@ -168,7 +168,8 @@
         const hasNewCopy = saved.includes("ひみつ道具");
         const hasThankYou = saved.includes("ありがとうございました");
         const hasScratchUrl = saved.includes("scratch.mit.edu");
-        if (!hasCareer || !hasAISlide || hasOldName || hasOldTerm || !hasScratch || hasOrientation || !hasNewCopy || !hasThankYou || !hasScratchUrl) {
+        const hasNotesHint = saved.includes("デジタルどこでもドア");
+        if (!hasCareer || !hasAISlide || hasOldName || hasOldTerm || !hasScratch || hasOrientation || !hasNewCopy || !hasThankYou || !hasScratchUrl || !hasNotesHint) {
           usePreset = true;
         }
       } catch (e) {
