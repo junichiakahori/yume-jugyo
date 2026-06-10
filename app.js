@@ -8,7 +8,7 @@
   let currentDeck = null;
   let currentSlideIndex = 0;
   let isEditMode = false;
-  let activeTheme = "theme-cyber"; // デフォルト: Future Cyber
+  let activeTheme = "theme-ocean"; // デフォルト: Kitakyushu Ocean
 
   // ローカルストレージからテーマ設定を復元
   try {
