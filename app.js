@@ -169,7 +169,8 @@
         const hasThankYou = saved.includes("ありがとうございました");
         const hasScratchUrl = saved.includes("scratch.mit.edu");
         const hasNotesHint = saved.includes("デジタルどこでもドア");
-        if (!hasCareer || !hasAISlide || hasOldName || hasOldTerm || !hasScratch || hasOrientation || !hasNewCopy || !hasThankYou || !hasScratchUrl || !hasNotesHint) {
+        const hasJobTitle = saved.includes("職業人");
+        if (!hasCareer || !hasAISlide || hasOldName || hasOldTerm || !hasScratch || hasOrientation || !hasNewCopy || !hasThankYou || !hasScratchUrl || !hasNotesHint || hasJobTitle) {
           usePreset = true;
         }
       } catch (e) {
