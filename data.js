@@ -80,7 +80,7 @@ window.YUME_DECKS = [
         id: "car-6",
         layout: "list",
         title: "感想シートに書いてみよう！",
-        subtitle: "今日のライトニングトークの振り返り",
+        subtitle: "今日のお話の振り返り",
         content: {
           bullets: [
             "💡 印象に残ったこと： AIエンジニアのイメージ、Scratchの実演、バグへの考え方など、何でもOK！",

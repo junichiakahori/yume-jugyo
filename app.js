@@ -162,7 +162,7 @@
         const hasAISlide = decks.some(d => d.slides && d.slides.some(s => s.title && s.title.includes("AI")));
         // 旧漢字「赤堀 淳一」、旧用語「社会人講師」、Scratchスライドの有無、不要となった orientation デッキ、または新コピー（ひみつ道具）が含まれない場合もプリセットで更新
         const hasOldName = saved.includes("赤堀 淳一");
-        const hasOldTerm = saved.includes("社会人講師");
+        const hasOldTerm = saved.includes("社会人講師") || saved.includes("ライトニングトーク");
         const hasScratch = saved.includes("car-scratch");
         const hasOrientation = decks.some(d => d.id === "orientation");
         const hasNewCopy = saved.includes("ひみつ道具");
