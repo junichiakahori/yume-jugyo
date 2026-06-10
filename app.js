@@ -1158,20 +1158,34 @@
     const slide = currentDeck.slides[currentSlideIndex];
     let textToSpeak = "";
 
-    // スライドのレイアウトに合わせて読み上げる文面を構成
-    if (slide.layout === "kamishibai") {
-      textToSpeak = `${slide.title}。${slide.subtitle || ""}。${slide.content.description || ""}`;
-    } else if (slide.layout === "title") {
-      textToSpeak = `${slide.title}。${slide.subtitle || ""}。`;
-    } else if (slide.layout === "list") {
-      textToSpeak = `${slide.title}。${(slide.content.bullets || []).join("。")}`;
-    } else if (slide.layout === "split") {
-      textToSpeak = `${slide.title}。左の項目：${slide.content.leftTitle}。${(slide.content.leftBullets || []).join("。")}。右の項目：${slide.content.rightTitle}。${(slide.content.rightBullets || []).join("。")}`;
-    } else if (slide.layout === "timeline") {
-      const stepTexts = (slide.content.steps || []).map(s => `${s.label}、${s.desc}`).join("。");
-      textToSpeak = `${slide.title}。${stepTexts}`;
-    } else if (slide.layout === "quote") {
-      textToSpeak = `${slide.title}。メッセージ：${slide.content.quote}。著者：${slide.content.author}`;
+    // 1. まずスピーカーノート（台本）を優先して読み上げテキストにする
+    if (slide.notes && slide.notes.trim() && !slide.notes.includes("スピーカーノートはありません")) {
+      textToSpeak = slide.notes;
+      // 発表者メモ（★や※、カッコで囲まれた補足）を読み上げから除外する
+      textToSpeak = textToSpeak
+        .replace(/（★[\s\S]*?）/g, "")
+        .replace(/\(★[\s\S]*?\)/g, "")
+        .replace(/（※[\s\S]*?）/g, "")
+        .replace(/\(※[\s\S]*?\)/g, "")
+        .replace(/【[\s\S]*?】/g, "");
+    }
+
+    // 2. スピーカーノートがない、またはクレンジングの結果空になった場合はスライド表面の文字を読む（フォールバック）
+    if (!textToSpeak.trim()) {
+      if (slide.layout === "kamishibai") {
+        textToSpeak = `${slide.title}。${slide.subtitle || ""}。${slide.content.description || ""}`;
+      } else if (slide.layout === "title") {
+        textToSpeak = `${slide.title}。${slide.subtitle || ""}。`;
+      } else if (slide.layout === "list") {
+        textToSpeak = `${slide.title}。${(slide.content.bullets || []).join("。")}`;
+      } else if (slide.layout === "split") {
+        textToSpeak = `${slide.title}。左の項目：${slide.content.leftTitle}。${(slide.content.leftBullets || []).join("。")}。右の項目：${slide.content.rightTitle}。${(slide.content.rightBullets || []).join("。")}`;
+      } else if (slide.layout === "timeline") {
+        const stepTexts = (slide.content.steps || []).map(s => `${s.label}、${s.desc}`).join("。");
+        textToSpeak = `${slide.title}。${stepTexts}`;
+      } else if (slide.layout === "quote") {
+        textToSpeak = `${slide.title}。メッセージ：${slide.content.quote}。著者：${slide.content.author}`;
+      }
     }
 
     // 絵文字や記号などを除正、英語アルファベットの読み間違い（AI -> エーアイなど）をカナに置換、URLの除去
