@@ -8,7 +8,17 @@
   let currentDeck = null;
   let currentSlideIndex = 0;
   let isEditMode = false;
-  let activeTheme = "theme-cyber";
+  let activeTheme = "theme-cyber"; // デフォルト: Future Cyber
+
+  // ローカルストレージからテーマ設定を復元
+  try {
+    const savedTheme = localStorage.getItem("yume_slides_theme");
+    if (savedTheme) {
+      activeTheme = savedTheme;
+    }
+  } catch (e) {
+    console.warn("テーマ設定の復元に失敗しました", e);
+  }
 
   // タイマー状態
   let timerInterval = null;
@@ -46,6 +56,9 @@
     setupDrawingCanvas();
     renderDeckSelector();
     loadDeck(decks[0].id);
+
+    // デフォルトテーマの初期適用
+    setTheme(activeTheme);
 
     // 自動再生設定の復元
     loadAutoSpeakConfig();
@@ -755,7 +768,12 @@
     elements.appContainer.className = elements.appContainer.className.replace(/theme-\w+/g, "");
     elements.appContainer.classList.add(themeClass);
     activeTheme = themeClass;
-    elements.themeSelector.value = themeClass;
+    if (elements.themeSelector) {
+      elements.themeSelector.value = themeClass;
+    }
+    try {
+      localStorage.setItem("yume_slides_theme", themeClass);
+    } catch (e) {}
   }
 
   // --- スピーカーノートトグル ---
