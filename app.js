@@ -765,8 +765,15 @@
 
   // --- テーマ制御 ---
   function setTheme(themeClass) {
-    elements.appContainer.className = elements.appContainer.className.replace(/theme-\w+/g, "");
-    elements.appContainer.classList.add(themeClass);
+    // bodyのクラスを変更することで、全体および各コンテンツの文字色・背景色を完璧にテーマに同期させる
+    document.body.className = document.body.className.replace(/theme-\w+/g, "");
+    document.body.classList.add(themeClass);
+
+    if (elements.appContainer) {
+      elements.appContainer.className = elements.appContainer.className.replace(/theme-\w+/g, "");
+      elements.appContainer.classList.add(themeClass);
+    }
+
     activeTheme = themeClass;
     if (elements.themeSelector) {
       elements.themeSelector.value = themeClass;

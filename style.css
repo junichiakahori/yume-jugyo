@@ -468,6 +468,7 @@ body {
   font-size: 2.5rem;
   font-weight: 800;
   margin-bottom: 8px;
+  color: var(--text-primary);
 }
 
 .layout-list p.slide-sub, .layout-split p.slide-sub, .layout-timeline p.slide-sub, .layout-quote p.slide-sub, .layout-kamishibai p.slide-sub {
